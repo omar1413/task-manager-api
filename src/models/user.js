@@ -4,17 +4,17 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const userSchema = new mongoose.Schema({
-	name     : {
-		type     : String,
-		required : true,
-		trim     : true
+	name: {
+		type: String,
+		required: true,
+		trim: true
 	},
-	email    : {
-		type      : String,
-		unique    : true,
-		required  : true,
-		trim      : true,
-		lowercase : true,
+	email: {
+		type: String,
+		unique: true,
+		required: true,
+		trim: true,
+		lowercase: true,
 
 		validate(val) {
 			if (!validator.isEmail(val)) {
@@ -22,30 +22,38 @@ const userSchema = new mongoose.Schema({
 			}
 		}
 	},
-	age      : {
-		type    : Number,
-		default : 0
+	age: {
+		type: Number,
+		default: 0
 	},
-	password : {
-		type      : String,
-		required  : true,
-		minlength : 7
+	password: {
+		type: String,
+		required: true,
+		minlength: 7
 	},
 
-	tokens   : [
+	tokens: [
 		{
-			token : {
-				type     : String,
-				required : true
+			token: {
+				type: String,
+				required: true
 			}
 		}
 	]
 });
 
+userSchema.methods.toJSON = function() {
+	const user = this;
+	const userObj = user.toObject();
+	delete userObj.password;
+	delete userObj.tokens;
+
+	return userObj;
+};
+
 userSchema.methods.generateAuthToken = async function() {
 	const user = this;
 	const token = await jwt.sign({ _id: user._id.toString() }, 'sec');
-	console.log(token);
 	user.tokens = user.tokens.concat({ token });
 	await user.save();
 	return token;
@@ -56,9 +64,6 @@ userSchema.statics.findByCredential = async (email, password) => {
 	if (!user) {
 		throw new Error('unable to login');
 	}
-
-	console.log(password);
-	console.log(user.password);
 	const isValidPassword = await bcrypt.compare(password, user.password);
 
 	if (!isValidPassword) {
