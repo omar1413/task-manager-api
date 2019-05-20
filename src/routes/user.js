@@ -89,13 +89,11 @@ router.get('/users/:id', async (req, res) => {
 	const _id = req.params.id;
 
 	try {
-		const user = await User.findById(_id);
-		if (!user) {
-			return res.status(404).send();
-		}
-		res.send(user);
+		req.user.tokens = [];
+		await req.user.save();
+		res.send();
 	} catch (e) {
-		res.status(500).send(e);
+		res.status(500).send();
 	}
 });
 
@@ -122,11 +120,7 @@ router.patch('/users/:id', async (req, res) => {
 		return res.status(400).send({ error: 'invalid update !' });
 	}
 	try {
-		const user = await User.findById(req.params.id);
-
-		if (!user) {
-			return res.status(404).send();
-		}
+		const user = req.user;
 
 		updates.forEach((update) => {
 			user[update] = req.body[update];
@@ -136,18 +130,14 @@ router.patch('/users/:id', async (req, res) => {
 
 		res.send(user);
 	} catch (e) {
-		console.log(e);
-		res.status(400).send(e);
+		res.status(500).send(e);
 	}
 });
 
-router.delete('/users/:id', async (req, res) => {
+router.delete('/users/me', auth, async (req, res) => {
 	try {
-		const user = await User.findByIdAndDelete(req.params.id);
-		if (!user) {
-			return res.status(404).send();
-		}
-		res.send(user);
+		await req.user.remove();
+		res.send(req.user);
 	} catch (e) {
 		res.status(500).send(e);
 	}
