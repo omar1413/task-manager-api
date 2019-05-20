@@ -39,13 +39,24 @@ const userSchema = new mongoose.Schema({
 				required : true
 			}
 		}
-	]
+	],
+	avatar   : {
+		type : Buffer
+	}
 });
+
+userSchema.methods.toJSON = function() {
+	const user = this;
+	const userObj = user.toObject();
+	delete userObj.password;
+	delete userObj.tokens;
+
+	return userObj;
+};
 
 userSchema.methods.generateAuthToken = async function() {
 	const user = this;
 	const token = await jwt.sign({ _id: user._id.toString() }, 'sec');
-	console.log(token);
 	user.tokens = user.tokens.concat({ token });
 	await user.save();
 	return token;
@@ -57,12 +68,9 @@ userSchema.statics.findByCredential = async (email, password) => {
 		throw new Error('unable to login');
 	}
 
-	console.log(password);
-	console.log(user.password);
 	const isValidPassword = await bcrypt.compare(password, user.password);
 
 	if (!isValidPassword) {
-		console.log(1);
 		throw new Error('unable to login');
 	}
 
