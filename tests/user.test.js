@@ -51,14 +51,12 @@ test('should user signup', async () => {
 	});
 });
 
-test('should login user', async () => {
-	const responce = await request(app)
-		.post('/users/login')
-		.send({
-			email    : userOne.email,
-			password : userOne.password
-		})
-		.expect(200);
+test('should get profile for user', async () => {
+	await request(app).get('/users/me').set('Authorization', `Bearer ${userOneToken}`).send().expect(200);
+});
+
+test('should not login for unAuth user', async () => {
+	await request(app).get('/users/me').send().expect(401);
 });
 
 test('should not login for not valid data', async () => {
@@ -71,10 +69,29 @@ test('should not login for not valid data', async () => {
 		.expect(400);
 });
 
-test('should get profile for user', async () => {
-	await request(app).get('/users/me').set('Authorization', `Bearer ${userOneToken}`).send().expect(200);
+test('should login user', async () => {
+	const responce = await request(app)
+		.post('/users/login')
+		.send({
+			email    : userOne.email,
+			password : userOne.password
+		})
+		.expect(200);
+
+	const user = await User.findById(responce.body.user._id);
+
+	expect(user).not.toBeNull();
+
+	expect(user.tokens[1].token).toBe(responce.body.token);
 });
 
-test('should not login for unAuth user', async () => {
-	await request(app).get('/users/me').send().expect(401);
+test('should delete user', async () => {
+	const response = await request(app)
+		.delete('/users/me')
+		.set('Authorization', `Bearer ${userOneToken}`)
+		.send()
+		.expect(200);
+
+	const user = await User.findById(userOneId);
+	expect(user).toBeNull();
 });
