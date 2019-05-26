@@ -46,8 +46,8 @@ router.post('/users/logout', auth, async (req, res) => {
 });
 
 const upload = multer({
-	limits     : {
-		fileSize : 7000000
+	limits: {
+		fileSize: 7000000
 	},
 	fileFilter(req, file, cb) {
 		if (!file.originalname.toLocaleLowerCase().match(/\.(png|jpg|jpeg)$/)) {
@@ -66,8 +66,8 @@ router.post(
 		try {
 			const buffer = await sharp(req.file.buffer)
 				.resize({
-					width : 500,
-					heigh : 500
+					width: 500,
+					heigh: 500
 				})
 				.png()
 				.toBuffer();
@@ -114,7 +114,7 @@ router.get('/users/:id/avatar', async (req, res) => {
 	}
 });
 
-router.patch('/users/:id', async (req, res) => {
+router.patch('/users/me', auth, async (req, res) => {
 	const allowedUpdates = [ 'name', 'age', 'email', 'password' ];
 	const updates = Object.keys(req.body);
 

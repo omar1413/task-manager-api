@@ -1,28 +1,9 @@
 const request = require('supertest');
-const mongoose = require('mongoose');
-const jwt = require('jsonwebtoken');
 const User = require('../src/models/user');
 const app = require('../src/app');
+const { userOne, userOneId, userOneToken, setupDatabase } = require('./fixtures/db');
 
-const userOneId = new mongoose.Types.ObjectId();
-const userOneToken = jwt.sign({ _id: userOneId }, process.env.JWT_SECRET);
-
-const userOne = {
-	_id      : userOneId,
-	email    : 'user@user.user',
-	password : 'user123!!',
-	name     : 'user one',
-	tokens   : [
-		{
-			token : userOneToken
-		}
-	]
-};
-
-beforeEach(async () => {
-	await User.deleteMany();
-	await new User(userOne).save();
-});
+beforeEach(setupDatabase);
 
 afterEach(() => {
 	console.log('after each');
@@ -32,9 +13,9 @@ test('should user signup', async () => {
 	const responce = await request(app)
 		.post('/users')
 		.send({
-			name     : 'omar',
-			email    : 'omar@gmaill.com',
-			password : 'helloworld!'
+			name: 'omar',
+			email: 'omar@gmaill.com',
+			password: 'helloworld!'
 		})
 		.expect(201);
 
@@ -43,11 +24,11 @@ test('should user signup', async () => {
 	expect(user).not.toBeNull();
 
 	expect(responce.body).toMatchObject({
-		user  : {
-			name  : user.name,
-			email : user.email
+		user: {
+			name: user.name,
+			email: user.email
 		},
-		token : user.tokens[0].token
+		token: user.tokens[0].token
 	});
 });
 
@@ -63,8 +44,8 @@ test('should not login for not valid data', async () => {
 	await request(app)
 		.post('/users/login')
 		.send({
-			email    : 'sasd',
-			password : 'sadgggg'
+			email: 'sasd',
+			password: 'sadgggg'
 		})
 		.expect(400);
 });
@@ -73,8 +54,8 @@ test('should login user', async () => {
 	const responce = await request(app)
 		.post('/users/login')
 		.send({
-			email    : userOne.email,
-			password : userOne.password
+			email: userOne.email,
+			password: userOne.password
 		})
 		.expect(200);
 
@@ -94,4 +75,47 @@ test('should delete user', async () => {
 
 	const user = await User.findById(userOneId);
 	expect(user).toBeNull();
+});
+
+test('should upload avatar for user', async () => {
+	const res = await request(app)
+		.post('/users/me/avatar')
+		.set('Authorization', `Bearer ${userOneToken}`)
+		.attach('avatar', 'tests/fixtures/profile-pic.jpg')
+		.expect(200);
+
+	const user = await User.findById(userOneId);
+	expect(user.avatar).toEqual(expect.any(Buffer));
+});
+
+test('should update valid user fields', async () => {
+	const res = await request(app)
+		.patch('/users/me')
+		.set('Authorization', `Bearer ${userOneToken}`)
+		.send({
+			name: 'omar',
+			email: 'omar@hmmmm.cooo'
+		})
+		.expect(200);
+
+	const user = await User.findById(userOneId);
+	expect(user).toMatchObject({
+		name: 'omar',
+		email: 'omar@hmmmm.cooo'
+	});
+});
+
+test('should not update with invalid user fields', async () => {
+	const res = await request(app)
+		.patch('/users/me')
+		.set('Authorization', `Bearer ${userOneToken}`)
+		.send({
+			name: 'something',
+			location: 'sontssss'
+		})
+		.expect(400);
+
+	const user = await User.findById(userOneId);
+	delete userOne.password;
+	expect(user.toObject()).toMatchObject(userOne);
 });
