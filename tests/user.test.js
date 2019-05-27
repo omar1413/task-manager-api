@@ -5,10 +5,6 @@ const { userOne, userOneId, userOneToken, setupDatabase } = require('./fixtures/
 
 beforeEach(setupDatabase);
 
-afterEach(() => {
-	console.log('after each');
-});
-
 test('should user signup', async () => {
 	const responce = await request(app)
 		.post('/users')
